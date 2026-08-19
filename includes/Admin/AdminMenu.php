@@ -66,6 +66,15 @@ final class AdminMenu
 
         add_submenu_page(
             'product-manager',
+            __( 'Categories', 'product-manager' ),
+            __( 'Categories', 'product-manager' ),
+            'pm_manage_categories',
+            'product-manager-categories',
+            array( $this, 'redirectToCategories' )
+        );
+
+        add_submenu_page(
+            'product-manager',
             __( 'Add New Product', 'product-manager' ),
             __( 'Add New Product', 'product-manager' ),
             'pm_manage_products',
