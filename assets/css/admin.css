@@ -1,0 +1,21 @@
+.product-manager-form .form-table th { width: 180px; }
+.product-manager-form .form-table td { vertical-align: top; }
+.product-manager-form__table { border-collapse: separate; border-spacing: 0; }
+.product-manager-form__section-row th { background: #f6f7f7; border-top: 1px solid #dfe0e1; }
+.product-manager-form__section-row th[colspan="2"] { padding: 14px 10px; }
+.product-manager-form__section-title { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: #1d2327; }
+.product-manager-featured-image-actions { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+.product-manager-featured-image-preview { margin-top: 8px; }
+.product-manager-featured-image-preview img { max-width: 96px; height: auto; display: block; }
+.product-manager-featured-image-preview .description { margin: 0; color: #646970; }
+.product-manager-company-settings .form-table th { width: 200px; }
+.product-manager-company-logo-preview img { max-width: 150px; height: auto; display: block; border: 1px solid #dfe0e1; background: #fff; }
+.product-manager-gallery-preview { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.product-manager-gallery-item { display: inline-flex; border: 1px solid #dfe0e1; padding: 4px; background: #fff; }
+.product-manager-gallery-item img { display: block; max-width: 80px; height: auto; }
+.product-manager-dashboard__actions { display: flex; gap: 12px; margin: 20px 0; flex-wrap: wrap; }
+.product-manager-dashboard__grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin: 24px 0; }
+.product-manager-dashboard__card { background: #fff; border: 1px solid #dfe0e1; border-radius: 8px; padding: 18px 20px; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
+.product-manager-dashboard__label { color: #646970; font-size: 13px; margin-bottom: 8px; }
+.product-manager-dashboard__value { font-size: 28px; font-weight: 700; color: #1d2327; }
+.product-manager-dashboard__panel { background: #fff; border: 1px solid #dfe0e1; border-radius: 8px; padding: 20px; margin-top: 20px; }
