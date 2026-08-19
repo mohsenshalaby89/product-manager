@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Product Manager
  * Description: A standalone WordPress product catalog and product management foundation for company product listings and catalog pages.
- * Version: 1.0.3
+ * Version: 1.0.4
  * Author: Mohsen Shalaby | <a target="_blank" href="https://gdh-eg.com">Graphic Design House</a>
  * Author URI: https://gdh-eg.com
  * Plugin URI: https://github.com/mohsenshalaby89/product-manager
@@ -11,19 +11,19 @@
 declare(strict_types=1);
 
 if ( ! defined( 'ABSPATH' ) ) {
-	exit;
+    exit;
 }
 
 if ( version_compare( PHP_VERSION, '7.4', '<' ) ) {
-	return;
+    return;
 }
 
 if ( ! function_exists( 'add_action' ) ) {
-	return;
+    return;
 }
 
 if ( ! defined( 'PRODUCT_MANAGER_VERSION' ) ) {
-	define( 'PRODUCT_MANAGER_VERSION', '1.0.3' );
+    define( 'PRODUCT_MANAGER_VERSION', '1.0.4' );
 }
 
 define( 'PRODUCT_MANAGER_PLUGIN_FILE', __FILE__ );
@@ -42,3 +42,22 @@ register_deactivation_hook( __FILE__, array( 'ProductManager\\Core\\Deactivator'
 
 $plugin = new ProductManager\Plugin();
 add_action( 'init', array( $plugin, 'boot' ) );
+
+// --- بداية كود التحديث التلقائي من GitHub ---
+
+// استدعاء ملف المكتبة
+require_once PRODUCT_MANAGER_PLUGIN_DIR . 'plugin-update-checker/plugin-update-checker.php';
+
+// استخدام الـ Namespace الخاص بالنسخة الخامسة من المكتبة
+use YahnisElsts\PluginUpdateChecker\v5\PucFactory;
+
+$myUpdateChecker = PucFactory::buildUpdateChecker(
+    'https://github.com/mohsenshalaby89/product-manager/',
+    __FILE__,
+    'product-manager'
+);
+
+// تحديد الفرع (Branch) اللي هينزل منه التحديثات (غالباً بيكون main أو master)
+$myUpdateChecker->setBranch('main');
+
+// --- نهاية كود التحديث التلقائي ---
