@@ -8,6 +8,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 use ProductManager\Company\CompanySettingsService;
+use ProductManager\Multilingual\PolylangBridge;
 use ProductManager\Products\ProductMetadataService;
 use ProductManager\Products\ProductService;
 
@@ -75,6 +76,55 @@ final class ProductFormScreen
             }
         }
 
+        $is_polylang_active = PolylangBridge::is_active();
+        $translation_product_id = 0;
+        $translation_title = '';
+        $translation_excerpt = '';
+        $translation_content = '';
+        $translation_season = '';
+        $translation_availability = 'in_stock';
+        $translation_price = '';
+        $translation_sku = '';
+        $translation_details = '';
+        $translation_category_id = 0;
+        $translation_language = 'en';
+
+        if ( $is_polylang_active ) {
+            $languages = PolylangBridge::get_languages();
+            if ( in_array( 'en', $languages, true ) ) {
+                $translation_language = 'en';
+            } elseif ( ! empty( $languages ) ) {
+                $translation_language = (string) $languages[0];
+            }
+
+            if ( $product instanceof \WP_Post ) {
+                $translation_product_id = PolylangBridge::get_translation_post_id( $product->ID, $translation_language );
+                if ( $translation_product_id > 0 ) {
+                    $translation_post = get_post( $translation_product_id );
+                    if ( $translation_post instanceof \WP_Post && 'pm_product' === $translation_post->post_type ) {
+                        $translation_title = (string) $translation_post->post_title;
+                        $translation_excerpt = (string) $translation_post->post_excerpt;
+                        $translation_content = (string) $translation_post->post_content;
+                        $translation_season = (string) $this->productMetadataService->get_product_meta( $translation_post->ID, 'season', '' );
+                        $translation_availability = (string) $this->productMetadataService->get_product_meta( $translation_post->ID, 'availability', 'in_stock' );
+                        $translation_price = (string) $this->productMetadataService->get_product_meta( $translation_post->ID, 'price', '' );
+                        $translation_sku = (string) $this->productMetadataService->get_product_meta( $translation_post->ID, 'sku', '' );
+                        $translation_details = (string) $this->productMetadataService->get_product_meta( $translation_post->ID, 'details', '' );
+
+                        $translation_terms = wp_get_post_terms( $translation_post->ID, 'pm_product_cat', array( 'fields' => 'ids' ) );
+                        if ( ! is_wp_error( $translation_terms ) && ! empty( $translation_terms ) ) {
+                            $translation_category_id = (int) $translation_terms[0];
+                        }
+                    }
+                } elseif ( $selected_category_id > 0 ) {
+                    $translated_category_id = PolylangBridge::get_translation_term_id( $selected_category_id, $translation_language );
+                    if ( $translated_category_id > 0 ) {
+                        $translation_category_id = $translated_category_id;
+                    }
+                }
+            }
+        }
+
         echo '<div class="wrap">';
         echo '<h1 class="wp-heading-inline">' . esc_html( $product instanceof \WP_Post ? __( 'Edit Product', 'product-manager' ) : __( 'Add New Product', 'product-manager' ) ) . '</h1>';
         echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" class="product-manager-form">';
@@ -82,6 +132,8 @@ final class ProductFormScreen
         wp_nonce_field( 'product_manager_save_product', 'product_manager_product_nonce' );
         echo '<input type="hidden" name="action" value="product_manager_save_product" />';
         echo '<input type="hidden" name="product_id" value="' . esc_attr( $product instanceof \WP_Post ? (string) $product->ID : '0' ) . '" />';
+        echo '<input type="hidden" name="product_translation_id" value="' . esc_attr( (string) $translation_product_id ) . '" />';
+        echo '<input type="hidden" name="product_translation_language" value="' . esc_attr( $translation_language ) . '" />';
 
         echo '<table class="form-table product-manager-form__table" role="presentation">';
         echo '<tbody>';
@@ -105,6 +157,35 @@ final class ProductFormScreen
             'quicktags' => true,
         ) );
         echo '</td></tr>';
+
+        if ( $is_polylang_active ) {
+            echo '<tr class="product-manager-form__section-row"><th colspan="2"><div class="product-manager-form__section-title">' . esc_html__( 'English Translation', 'product-manager' ) . '</div></th></tr>';
+            echo '<tr><th scope="row"><label for="product_name_translation">' . esc_html__( 'Product Name (English)', 'product-manager' ) . '</label></th><td><input type="text" id="product_name_translation" name="product_name_translation" value="' . esc_attr( $translation_title ) . '" class="regular-text" /></td></tr>';
+            echo '<tr><th scope="row"><label for="product_excerpt_translation">' . esc_html__( 'Short Description (English)', 'product-manager' ) . '</label></th><td><textarea id="product_excerpt_translation" name="product_excerpt_translation" rows="4" class="large-text">' . esc_textarea( $translation_excerpt ) . '</textarea></td></tr>';
+            echo '<tr><th scope="row"><label for="product_content_translation">' . esc_html__( 'Description (English)', 'product-manager' ) . '</label></th><td>';
+            wp_editor( $translation_content, 'product_content_translation', array(
+                'textarea_name' => 'product_content_translation',
+                'textarea_rows' => 10,
+                'media_buttons' => false,
+                'teeny' => true,
+                'quicktags' => true,
+            ) );
+            echo '<p class="description">' . esc_html__( 'If you fill this section, the plugin will save and link an English translation for this product.', 'product-manager' ) . '</p>';
+            echo '</td></tr>';
+            echo '<tr><th scope="row"><label for="product_category_translation">' . esc_html__( 'Category (English)', 'product-manager' ) . '</label></th><td><select id="product_category_translation" name="product_category_translation" class="regular-text">';
+            echo '<option value="0">' . esc_html__( 'Select a category', 'product-manager' ) . '</option>';
+            if ( ! is_wp_error( $categories ) && ! empty( $categories ) ) {
+                foreach ( $categories as $category ) {
+                    echo '<option value="' . esc_attr( (string) $category->term_id ) . '"' . selected( $translation_category_id, $category->term_id, false ) . '>' . esc_html( $category->name ) . '</option>';
+                }
+            }
+            echo '</select></td></tr>';
+            echo '<tr><th scope="row"><label for="product_season_translation">' . esc_html__( 'Season / Collection (English)', 'product-manager' ) . '</label></th><td><input type="text" id="product_season_translation" name="product_season_translation" value="' . esc_attr( $translation_season ) . '" class="regular-text" /></td></tr>';
+            echo '<tr><th scope="row"><label for="product_availability_translation">' . esc_html__( 'Availability (English)', 'product-manager' ) . '</label></th><td><select id="product_availability_translation" name="product_availability_translation" class="regular-text"><option value="in_stock"' . selected( $translation_availability, 'in_stock', false ) . '>' . esc_html__( 'In Stock', 'product-manager' ) . '</option><option value="limited"' . selected( $translation_availability, 'limited', false ) . '>' . esc_html__( 'Limited', 'product-manager' ) . '</option><option value="out_of_stock"' . selected( $translation_availability, 'out_of_stock', false ) . '>' . esc_html__( 'Out of Stock', 'product-manager' ) . '</option></select></td></tr>';
+            echo '<tr><th scope="row"><label for="product_price_translation">' . esc_html__( 'Price (English)', 'product-manager' ) . '</label></th><td><input type="text" id="product_price_translation" name="product_price_translation" value="' . esc_attr( $translation_price ) . '" class="regular-text" /></td></tr>';
+            echo '<tr><th scope="row"><label for="product_sku_translation">' . esc_html__( 'SKU (English)', 'product-manager' ) . '</label></th><td><input type="text" id="product_sku_translation" name="product_sku_translation" value="' . esc_attr( $translation_sku ) . '" class="regular-text" /></td></tr>';
+            echo '<tr><th scope="row"><label for="product_details_translation">' . esc_html__( 'Technical Details (English)', 'product-manager' ) . '</label></th><td><textarea id="product_details_translation" name="product_details_translation" rows="6" class="large-text">' . esc_textarea( $translation_details ) . '</textarea></td></tr>';
+        }
 
         echo '<tr class="product-manager-form__section-row"><th colspan="2"><div class="product-manager-form__section-title">' . esc_html__( 'Product Details', 'product-manager' ) . '</div></th></tr>';
         echo '<tr><th scope="row"><label for="product_season">' . esc_html__( 'Season / Collection', 'product-manager' ) . '</label></th><td><input type="text" id="product_season" name="product_season" value="' . esc_attr( $season ) . '" class="regular-text" /></td></tr>';

@@ -8,6 +8,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 use ProductManager\Company\CompanySettingsService;
+use ProductManager\Multilingual\PolylangBridge;
 use ProductManager\Products\ProductMetadataService;
 use ProductManager\Products\ProductService;
 
@@ -55,6 +56,17 @@ final class ProductActions
         $price = isset( $_POST['product_price'] ) ? sanitize_text_field( wp_unslash( $_POST['product_price'] ) ) : '';
         $sku = isset( $_POST['product_sku'] ) ? sanitize_text_field( wp_unslash( $_POST['product_sku'] ) ) : '';
         $details = isset( $_POST['product_details'] ) ? sanitize_textarea_field( wp_unslash( $_POST['product_details'] ) ) : '';
+        $translation_product_id = isset( $_POST['product_translation_id'] ) ? absint( wp_unslash( $_POST['product_translation_id'] ) ) : 0;
+        $translation_language = isset( $_POST['product_translation_language'] ) ? sanitize_key( wp_unslash( $_POST['product_translation_language'] ) ) : 'en';
+        $translation_title = isset( $_POST['product_name_translation'] ) ? sanitize_text_field( wp_unslash( $_POST['product_name_translation'] ) ) : '';
+        $translation_excerpt = isset( $_POST['product_excerpt_translation'] ) ? sanitize_textarea_field( wp_unslash( $_POST['product_excerpt_translation'] ) ) : '';
+        $translation_content = isset( $_POST['product_content_translation'] ) ? wp_kses_post( wp_unslash( $_POST['product_content_translation'] ) ) : '';
+        $translation_category_id = isset( $_POST['product_category_translation'] ) ? absint( wp_unslash( $_POST['product_category_translation'] ) ) : 0;
+        $translation_season = isset( $_POST['product_season_translation'] ) ? sanitize_text_field( wp_unslash( $_POST['product_season_translation'] ) ) : '';
+        $translation_availability = isset( $_POST['product_availability_translation'] ) ? sanitize_key( wp_unslash( $_POST['product_availability_translation'] ) ) : 'in_stock';
+        $translation_price = isset( $_POST['product_price_translation'] ) ? sanitize_text_field( wp_unslash( $_POST['product_price_translation'] ) ) : '';
+        $translation_sku = isset( $_POST['product_sku_translation'] ) ? sanitize_text_field( wp_unslash( $_POST['product_sku_translation'] ) ) : '';
+        $translation_details = isset( $_POST['product_details_translation'] ) ? sanitize_textarea_field( wp_unslash( $_POST['product_details_translation'] ) ) : '';
         $gallery = isset( $_POST['product_gallery'] ) ? $_POST['product_gallery'] : '';
         $gallery_ids = array();
         if ( is_string( $gallery ) && '' !== trim( $gallery ) ) {
@@ -105,6 +117,21 @@ final class ProductActions
 
         $saved_id = $this->productService->save_product( $data );
         if ( $saved_id > 0 ) {
+            $this->saveTranslationIfProvided(
+                $saved_id,
+                $translation_product_id,
+                $translation_language,
+                $translation_title,
+                $translation_excerpt,
+                $translation_content,
+                $translation_category_id,
+                $translation_season,
+                $translation_availability,
+                $translation_price,
+                $translation_sku,
+                $translation_details,
+                $data
+            );
             $this->redirectToList( 'saved' );
         }
 
@@ -164,6 +191,70 @@ final class ProductActions
 
         wp_safe_redirect( admin_url( 'admin.php?page=product-manager-company-settings' ) );
         exit;
+    }
+
+    private function saveTranslationIfProvided(
+        int $source_product_id,
+        int $translation_product_id,
+        string $translation_language,
+        string $translation_title,
+        string $translation_excerpt,
+        string $translation_content,
+        int $translation_category_id,
+        string $translation_season,
+        string $translation_availability,
+        string $translation_price,
+        string $translation_sku,
+        string $translation_details,
+        array $source_data
+    ): void {
+        if ( ! PolylangBridge::is_active() || '' === $translation_title ) {
+            return;
+        }
+
+        $available_languages = PolylangBridge::get_languages();
+        if ( empty( $available_languages ) ) {
+            return;
+        }
+
+        if ( ! in_array( $translation_language, $available_languages, true ) ) {
+            $translation_language = in_array( 'en', $available_languages, true ) ? 'en' : (string) $available_languages[0];
+        }
+
+        $translation_data = $source_data;
+        $translation_data['ID'] = $translation_product_id;
+        $translation_data['title'] = $translation_title;
+        $translation_data['excerpt'] = $translation_excerpt;
+        $translation_data['content'] = $translation_content;
+        $translation_data['category_id'] = $translation_category_id > 0 && term_exists( $translation_category_id, 'pm_product_cat' ) ? $translation_category_id : 0;
+        $translation_data['meta'] = array(
+            'season' => $translation_season,
+            'availability' => in_array( $translation_availability, array( 'in_stock', 'limited', 'out_of_stock' ), true ) ? $translation_availability : 'in_stock',
+            'price' => $translation_price,
+            'sku' => $translation_sku,
+            'details' => $translation_details,
+            'gallery' => isset( $source_data['meta']['gallery'] ) && is_array( $source_data['meta']['gallery'] ) ? $source_data['meta']['gallery'] : array(),
+        );
+
+        $translated_product_id = $this->productService->save_product( $translation_data );
+        if ( $translated_product_id <= 0 ) {
+            return;
+        }
+
+        $source_language = in_array( 'ar', $available_languages, true ) ? 'ar' : (string) $available_languages[0];
+        if ( $source_language === $translation_language ) {
+            $source_language = in_array( 'en', $available_languages, true ) ? 'en' : (string) $available_languages[0];
+        }
+
+        PolylangBridge::set_post_language( $source_product_id, $source_language );
+        PolylangBridge::set_post_language( $translated_product_id, $translation_language );
+
+        PolylangBridge::save_post_translations(
+            array(
+                $source_language => $source_product_id,
+                $translation_language => $translated_product_id,
+            )
+        );
     }
 
     private function redirectToList( string $notice ): void

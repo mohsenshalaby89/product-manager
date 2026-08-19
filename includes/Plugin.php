@@ -19,6 +19,7 @@ use ProductManager\Core\CapabilityService;
 use ProductManager\Core\PostTypeService;
 use ProductManager\Core\TaxonomyService;
 use ProductManager\Frontend\Frontend;
+use ProductManager\Multilingual\PolylangBridge;
 use ProductManager\Products\ProductMetadataService;
 use ProductManager\Products\ProductQueryService;
 use ProductManager\Products\ProductService;
@@ -56,6 +57,8 @@ final class Plugin
 
         add_action( 'admin_init', array( $this, 'register_admin_actions' ) );
         add_action( 'admin_init', array( $this->settingsScreen, 'register' ) );
+        add_filter( 'pll_get_post_types', array( PolylangBridge::class, 'register_content_type_support' ), 10, 2 );
+        add_filter( 'pll_get_taxonomies', array( PolylangBridge::class, 'register_taxonomy_support' ), 10, 2 );
     }
 
     public function register_admin_actions(): void
