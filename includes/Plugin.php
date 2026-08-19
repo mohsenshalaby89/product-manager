@@ -91,7 +91,12 @@ final class Plugin
         $this->postTypeService->register();
         $this->taxonomyService->register();
         $this->capabilityService->ensure_capabilities();
+
         $this->frontend->register();
+
+        if ( function_exists( 'flush_rewrite_rules' ) ) {
+            flush_rewrite_rules();
+        }
     }
 
     public function boot_admin(): void

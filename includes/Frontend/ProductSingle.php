@@ -28,6 +28,8 @@ final class ProductSingle
             'index.php?post_type=pm_product&name=$matches[1]&' . self::QUERY_VAR . '=$matches[1]',
             'top'
         );
+
+        add_rewrite_tag( '%' . self::QUERY_VAR . '%', '([^&]+)' );
     }
 
     public function register_query_var( array $query_vars ): array
@@ -56,7 +58,13 @@ final class ProductSingle
             return $this->resolve_not_found_template( $template );
         }
 
-        set_query_var( 'product_manager_single_product', $this->prepare_product_data( $product ) );
+        $prepared_product = $this->prepare_product_data( $product );
+
+        if ( empty( $prepared_product['title'] ) ) {
+            return $this->resolve_not_found_template( $template );
+        }
+
+        set_query_var( 'product_manager_single_product', $prepared_product );
 
         $single_template = PRODUCT_MANAGER_PLUGIN_DIR . 'templates/single-product.php';
 
@@ -102,17 +110,20 @@ final class ProductSingle
             $company_settings = array();
         }
 
+        $post_title = $translated_product instanceof \WP_Post ? $translated_product->post_title : $product->post_title;
+        $post_content = $translated_product instanceof \WP_Post ? $translated_product->post_content : $product->post_content;
+
         return array(
             'id' => (int) $translated_post_id,
-            'title' => $translated_product instanceof \WP_Post ? $translated_product->post_title : $product->post_title,
-            'content' => apply_filters( 'the_content', $translated_product instanceof \WP_Post ? $translated_product->post_content : $product->post_content ),
-            'category' => $category_name,
+            'title' => is_string( $post_title ) ? $post_title : '',
+            'content' => is_string( $post_content ) ? apply_filters( 'the_content', $post_content ) : '',
+            'category' => is_string( $category_name ) ? $category_name : '',
             'season' => isset( $product->season ) ? (string) $product->season : '',
             'availability' => isset( $product->availability ) ? (string) $product->availability : 'in_stock',
             'price' => isset( $product->price ) ? (string) $product->price : '',
             'sku' => isset( $product->sku ) ? (string) $product->sku : '',
             'details' => isset( $product->details ) ? (string) $product->details : '',
-            'gallery' => $gallery,
+            'gallery' => is_array( $gallery ) ? $gallery : array(),
             'url' => get_permalink( $translated_post_id ),
             'thumbnail_id' => get_post_thumbnail_id( $translated_post_id ),
             'company_name' => sanitize_text_field( (string) ( $company_settings['company_name'] ?? '' ) ),
