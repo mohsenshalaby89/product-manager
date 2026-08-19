@@ -25,6 +25,8 @@ use ProductManager\Products\ProductService;
 
 final class Plugin
 {
+    private const REWRITE_RULES_VERSION = 2;
+
     private PostTypeService $postTypeService;
     private TaxonomyService $taxonomyService;
     private CapabilityService $capabilityService;
@@ -94,8 +96,9 @@ final class Plugin
 
         $this->frontend->register();
 
-        if ( function_exists( 'flush_rewrite_rules' ) ) {
+        if ( (int) get_option( 'product_manager_rewrite_rules_version', 0 ) < self::REWRITE_RULES_VERSION ) {
             flush_rewrite_rules();
+            update_option( 'product_manager_rewrite_rules_version', self::REWRITE_RULES_VERSION );
         }
     }
 

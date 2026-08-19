@@ -5,17 +5,35 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-$product = get_query_var( 'product_manager_single_product' );
-
-if ( ! is_array( $product ) ) {
-	return;
-}
+$product_data = get_query_var( 'product_manager_single_product' );
+$product = wp_parse_args(
+	is_array( $product_data ) ? $product_data : array(),
+	array(
+		'id'                  => 0,
+		'title'               => '',
+		'content'             => '',
+		'category'            => '',
+		'season'              => '',
+		'availability'        => '',
+		'price'               => '',
+		'sku'                 => '',
+		'details'             => '',
+		'gallery'             => array(),
+		'thumbnail_id'        => 0,
+		'company_name'        => '',
+		'company_email'       => '',
+		'company_phone'       => '',
+		'company_whatsapp'    => '',
+		'company_website'     => '',
+		'company_description' => '',
+	)
+);
 
 $gallery_ids = array();
 if ( ! empty( $product['thumbnail_id'] ) ) {
 	$gallery_ids[] = (int) $product['thumbnail_id'];
 }
-if ( ! empty( $product['gallery'] ) ) {
+if ( is_array( $product['gallery'] ) && ! empty( $product['gallery'] ) ) {
 	foreach ( $product['gallery'] as $gallery_item ) {
 		$attachment_id = absint( $gallery_item );
 		if ( $attachment_id > 0 && ! in_array( $attachment_id, $gallery_ids, true ) ) {
@@ -35,6 +53,8 @@ get_header();
 			<div class="pm-product-single__main-image-wrap">
 				<?php if ( ! empty( $main_image_url ) ) : ?>
 					<img class="pm-product-single__main-image" src="<?php echo esc_url( $main_image_url ); ?>" alt="<?php echo esc_attr( $product['title'] ); ?>" />
+				<?php else : ?>
+					<div class="pm-product-single__image-placeholder"><?php esc_html_e( 'Product image coming soon', 'product-manager' ); ?></div>
 				<?php endif; ?>
 			</div>
 
