@@ -2,10 +2,10 @@
 /**
  * Plugin Name: Product Manager
  * Description: A standalone WordPress product catalog and product management foundation for company product listings and catalog pages.
- * Version: 1.0.1
+ * Version: 1.0.2
  * Author: Mohsen Shalaby | <a target="_blank" href="https://gdh-eg.com">Graphic Design House</a>
  * Author URI: https://gdh-eg.com
- * Plugin URI: https://github.com/your-username/product-manager
+ * Plugin URI: https://github.com/mohsenshalaby89/product-manager
  * Text Domain: product-manager
  */
 declare(strict_types=1);
@@ -23,7 +23,7 @@ if ( ! function_exists( 'add_action' ) ) {
 }
 
 if ( ! defined( 'PRODUCT_MANAGER_VERSION' ) ) {
-	define( 'PRODUCT_MANAGER_VERSION', '1.0.1' );
+	define( 'PRODUCT_MANAGER_VERSION', '1.0.2' );
 }
 
 define( 'PRODUCT_MANAGER_PLUGIN_FILE', __FILE__ );
