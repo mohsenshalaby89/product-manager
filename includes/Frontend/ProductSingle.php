@@ -41,21 +41,34 @@ final class ProductSingle
 
     public function is_product_request(): bool
     {
+        if ( is_singular( 'pm_product' ) ) {
+            return true;
+        }
+
         return '' !== $this->get_requested_slug();
     }
 
     public function filter_template( string $template ): string
     {
+        $product = null;
         $requested_slug = $this->get_requested_slug();
 
-        if ( '' === $requested_slug ) {
+        if ( is_singular( 'pm_product' ) ) {
+            $queried_object = get_queried_object();
+            if ( $queried_object instanceof \WP_Post ) {
+                $product = $this->productQueryService->get_public_product_by_id( (int) $queried_object->ID );
+            }
+        } elseif ( '' !== $requested_slug ) {
+            $product = $this->productQueryService->get_public_product_by_slug( $requested_slug );
+            if ( null === $product ) {
+                return $this->resolve_not_found_template( $template );
+            }
+        } else {
             return $template;
         }
 
-        $product = $this->productQueryService->get_public_product_by_slug( $requested_slug );
-
         if ( null === $product ) {
-            return $this->resolve_not_found_template( $template );
+            return $template;
         }
 
         $prepared_product = $this->prepare_product_data( $product );
