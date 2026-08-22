@@ -85,6 +85,7 @@ final class ProductSingle
     private function prepare_product_data( \WP_Post $product ): array
     {
         $translated_post_id = PolylangBridge::get_translated_post_id( (int) $product->ID );
+        $media_source_post_id = $this->resolve_media_source_post_id( $translated_post_id );
         $translated_product = get_post( $translated_post_id );
 
         $terms = wp_get_post_terms( $translated_post_id, 'pm_product_cat' );
@@ -95,8 +96,8 @@ final class ProductSingle
         }
 
         $gallery = array();
-        if ( $translated_product instanceof \WP_Post ) {
-            $gallery_meta = get_post_meta( $translated_product->ID, 'pm_product_gallery', true );
+        if ( $media_source_post_id > 0 ) {
+            $gallery_meta = get_post_meta( $media_source_post_id, 'pm_product_gallery', true );
             if ( is_array( $gallery_meta ) ) {
                 $gallery = array_values( array_filter( array_map( 'absint', $gallery_meta ) ) );
             } elseif ( is_string( $gallery_meta ) ) {
@@ -125,7 +126,7 @@ final class ProductSingle
             'details' => isset( $product->details ) ? (string) $product->details : '',
             'gallery' => is_array( $gallery ) ? $gallery : array(),
             'url' => get_permalink( $translated_post_id ),
-            'thumbnail_id' => get_post_thumbnail_id( $translated_post_id ),
+            'thumbnail_id' => get_post_thumbnail_id( $media_source_post_id ),
             'company_name' => sanitize_text_field( (string) ( $company_settings['company_name'] ?? '' ) ),
             'company_email' => sanitize_email( (string) ( $company_settings['company_email'] ?? '' ) ),
             'company_phone' => sanitize_text_field( (string) ( $company_settings['company_phone'] ?? '' ) ),
@@ -133,6 +134,30 @@ final class ProductSingle
             'company_website' => esc_url_raw( (string) ( $company_settings['company_website'] ?? '' ) ),
             'company_description' => sanitize_textarea_field( (string) ( $company_settings['company_description'] ?? '' ) ),
         );
+    }
+
+    private function resolve_media_source_post_id( int $post_id ): int
+    {
+        if ( $post_id <= 0 ) {
+            return 0;
+        }
+
+        $candidate_ids = PolylangBridge::get_post_translation_ids( $post_id );
+        if ( empty( $candidate_ids ) ) {
+            return $post_id;
+        }
+
+        foreach ( $candidate_ids as $candidate_id ) {
+            $thumbnail_id = get_post_thumbnail_id( $candidate_id );
+            $gallery_meta = get_post_meta( $candidate_id, 'pm_product_gallery', true );
+            $has_gallery = is_array( $gallery_meta ) ? ! empty( array_filter( array_map( 'absint', $gallery_meta ) ) ) : ( is_string( $gallery_meta ) && '' !== trim( $gallery_meta ) );
+
+            if ( $thumbnail_id > 0 || $has_gallery ) {
+                return (int) $candidate_id;
+            }
+        }
+
+        return $post_id;
     }
 
     private function resolve_not_found_template( string $template ): string

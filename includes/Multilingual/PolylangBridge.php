@@ -80,6 +80,36 @@ final class PolylangBridge
         return is_int( $translation_id ) && $translation_id > 0 ? $translation_id : 0;
     }
 
+    public static function get_post_translation_ids( int $post_id ): array
+    {
+        if ( $post_id <= 0 ) {
+            return array();
+        }
+
+        if ( ! self::is_active() || ! function_exists( 'pll_get_post_translations' ) ) {
+            return array( $post_id );
+        }
+
+        $translations = pll_get_post_translations( $post_id );
+        if ( ! is_array( $translations ) ) {
+            return array( $post_id );
+        }
+
+        $ids = array_values(
+            array_unique(
+                array_filter(
+                    array_map( 'absint', $translations )
+                )
+            )
+        );
+
+        if ( empty( $ids ) ) {
+            return array( $post_id );
+        }
+
+        return $ids;
+    }
+
     public static function save_post_translations( array $translations ): void
     {
         if ( ! self::is_active() || ! function_exists( 'pll_save_post_translations' ) ) {

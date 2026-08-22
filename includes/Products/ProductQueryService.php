@@ -294,7 +294,8 @@ final class ProductQueryService{
     private function attach_public_product_meta( \WP_Post $post ): \WP_Post
     {
         $translated_post_id = PolylangBridge::get_translated_post_id( (int) $post->ID );
-        $gallery = $this->normalize_gallery_meta( get_post_meta( $translated_post_id, 'pm_product_gallery', true ) );
+        $media_source_post_id = $this->resolve_media_source_post_id( $translated_post_id );
+        $gallery = $this->normalize_gallery_meta( get_post_meta( $media_source_post_id, 'pm_product_gallery', true ) );
 
         $meta = array(
             'season' => PolylangBridge::get_post_meta_value( (int) $post->ID, 'pm_product_season', '' ),
@@ -309,10 +310,33 @@ final class ProductQueryService{
             $post->{$key} = $value;
         }
 
-        $post->thumbnail_id = get_post_thumbnail_id( $translated_post_id );
+        $post->thumbnail_id = get_post_thumbnail_id( $media_source_post_id );
         $post->url = get_permalink( $translated_post_id );
 
         return $post;
+    }
+
+    private function resolve_media_source_post_id( int $post_id ): int
+    {
+        if ( $post_id <= 0 ) {
+            return 0;
+        }
+
+        $candidate_ids = PolylangBridge::get_post_translation_ids( $post_id );
+        if ( empty( $candidate_ids ) ) {
+            return $post_id;
+        }
+
+        foreach ( $candidate_ids as $candidate_id ) {
+            $thumbnail_id = get_post_thumbnail_id( $candidate_id );
+            $gallery = $this->normalize_gallery_meta( get_post_meta( $candidate_id, 'pm_product_gallery', true ) );
+
+            if ( $thumbnail_id > 0 || ! empty( $gallery ) ) {
+                return (int) $candidate_id;
+            }
+        }
+
+        return $post_id;
     }
 
     private function normalize_gallery_meta( $value ): array
